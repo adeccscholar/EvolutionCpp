@@ -30,3 +30,22 @@
 *.exe
 *.out
 *.app
+
+#visual studio
+*.filters
+*.user
+*.aps
+
+# special embarcadero files or directories
+__history
+__astcache
+__recovery
+*.local
+*.skincfg
+
+# special directories
+Win32
+Win64
+Release
+Debug
+.vs
