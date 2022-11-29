@@ -7,15 +7,23 @@
 
 class TTracer {
    friend std::ostream& operator << (std::ostream& out, TTracer const& data) { out << data.i; return out; }
+   friend void swap(TTracer& lhs, TTracer& rhs) {
+      std::swap(lhs, rhs);
+      }
 private:
    int i;
 
 public:
    TTracer(void) { std::cout << "standard constructed with i = 0" << std::endl; i = 0; };
+
    TTracer(TTracer const& ref) { std::cout << "copy constructed with i = " << ref.i << std::endl; i = ref.i; };
+   TTracer(TTracer && ref) { std::cout << "pirate constructed with i = " << ref.i << std::endl; std::swap(i, ref.i); };
+
    TTracer(int val) { std::cout << "initialization constructed with i = " << val << std::endl; i = val; };
    ~TTracer(void) { std::cout << "destructed with i = " << i << std::endl; };
 
+   TTracer& operator = (TTracer const& ref) { std::cout << "assign operator with i = " << ref << std::endl; i = ref.i; return *this; };
+   TTracer& operator = (TTracer && ref) { std::cout << "rvalue operator with i = " << ref << std::endl; swap(*this, ref); return *this; };
    TTracer& operator = (int ref) { std::cout << "assign operator with i = " << ref << std::endl; i = ref; return *this; };
 
    operator int() { std::cout << "conversion operator i = " << i << std::endl; return i; };
