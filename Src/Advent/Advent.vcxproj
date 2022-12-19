@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{ba447966-7e5b-48c0-8ce2-11e49ea7f1a7}</ProjectGuid>
-    <RootNamespace>Move</RootNamespace>
+    <ProjectGuid>{6c97b481-8315-4ade-9bdf-06677b1143c0}</ProjectGuid>
+    <RootNamespace>Advent</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -104,8 +104,9 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
+      <EnableModules>true</EnableModules>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -120,6 +121,8 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <LanguageStandard>stdcpp20</LanguageStandard>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -129,7 +132,45 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Move.cpp" />
+    <ClCompile Include="Advent.cpp" />
+    <ClCompile Include="AOC_Day1.cpp" />
+    <ClCompile Include="AOC_Day2.cpp" />
+    <ClCompile Include="AOC_Day3.cpp" />
+    <ClCompile Include="AOC_Day4.cpp" />
+    <ClCompile Include="AOC_Day5.cpp" />
+    <ClCompile Include="AOC_Day6.cpp" />
+    <ClCompile Include="AOC_Day7.cpp" />
+    <ClCompile Include="AOC_Day8.cpp" />
+    <ClCompile Include="AOC_Day9.cpp" />
+    <ClCompile Include="AOC_Day10.cpp" />
+    <ClCompile Include="AOC_Day11.cpp" />
+    <ClCompile Include="AOC_Day12.cpp" />
+    <ClCompile Include="AOC_Day13.cpp" />
+    <ClCompile Include="AOC_Day14.cpp" />
+    <ClCompile Include="AOC_Day15.cpp" />
+    <ClCompile Include="AOC_Day16.cpp" />
+    <ClCompile Include="AOC_Day17.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="AOC_Day1.h" />
+    <ClInclude Include="AOC_Day2.h" />
+    <ClInclude Include="AOC_Day3.h" />
+    <ClInclude Include="AOC_Day4.h" />
+    <ClInclude Include="AOC_Utils.h" />
+    <ClInclude Include="AOC_Day5.h" />
+    <ClInclude Include="AOC_Day6.h" />
+    <ClInclude Include="AOC_Day7.h" />
+    <ClInclude Include="AOC_Read.h" />
+    <ClInclude Include="AOC_Day8.h" />
+    <ClInclude Include="AOC_Day9.h" />
+    <ClInclude Include="AOC_Day10.h" />
+    <ClInclude Include="AOC_Day11.h" />
+    <ClInclude Include="AOC_Day12.h" />
+    <ClInclude Include="AOC_Day13.h" />
+    <ClInclude Include="AOC_Day14.h" />
+    <ClInclude Include="AOC_Day15.h" />
+    <ClInclude Include="AOC_Day16.h" />
+    <ClInclude Include="AOC_Day17.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
