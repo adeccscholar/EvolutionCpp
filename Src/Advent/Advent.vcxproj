@@ -150,6 +150,14 @@
     <ClCompile Include="AOC_Day15.cpp" />
     <ClCompile Include="AOC_Day16.cpp" />
     <ClCompile Include="AOC_Day17.cpp" />
+    <ClCompile Include="AOC_Day18.cpp" />
+    <ClCompile Include="AOC_Day19.cpp" />
+    <ClCompile Include="AOC_Day20.cpp" />
+    <ClCompile Include="AOC_Day21.cpp" />
+    <ClCompile Include="AOC_Day22.cpp" />
+    <ClCompile Include="AOC_Day23.cpp" />
+    <ClCompile Include="AOC_Day24.cpp" />
+    <ClCompile Include="AOC_Day25.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AOC_Day1.h" />
@@ -171,6 +179,14 @@
     <ClInclude Include="AOC_Day15.h" />
     <ClInclude Include="AOC_Day16.h" />
     <ClInclude Include="AOC_Day17.h" />
+    <ClInclude Include="AOC_Day18.h" />
+    <ClInclude Include="AOC_Day19.h" />
+    <ClInclude Include="AOC_Day20.h" />
+    <ClInclude Include="AOC_Day21.h" />
+    <ClInclude Include="AOC_Day22.h" />
+    <ClInclude Include="AOC_Day23.h" />
+    <ClInclude Include="AOC_Day24.h" />
+    <ClInclude Include="AOC_Day25.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

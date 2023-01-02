@@ -4,6 +4,7 @@
 #include <utility>
 #include <optional>
 #include <algorithm>
+#include <execution>
 #include <regex>
 #include <chrono>
 #include "AOC_Day16.h"
@@ -21,7 +22,7 @@ namespace Day16 {
    using valves_data    = std::map<std::string, valve_data>;
 
    // control during calculations, opened valve and time
-   using workflow_data = std::map<std::string, std::tuple<size_t, size_t>>;
+   using workflow_data = std::map<std::pair<std::string, size_t>, std::tuple<size_t, size_t>>;
 
   // using distances_grid = std::map<std::pair<std::string, std::string>, std::optional<std::pair<size_t, size_t>>>;
 
@@ -158,24 +159,30 @@ namespace Day16 {
       return retval;
       }
 
-   std::optional<size_t> MakeStep(std::string const& target, workflow_data workflow, size_t max_time, size_t next_time, valves_data const& data) {
+   std::optional<size_t> MakeStep(std::string const& target, workflow_data workflow, size_t player, size_t max_time, size_t next_time, valves_data const& data) {
       if (next_time >= max_time) return Evaluate(max_time, workflow, data);
-      if (auto step = data.find(target); step != data.end()) {   // open only if effect opening need 1 second
+      if (auto step = data.find(target); step != data.end()) {   // open only if effect opening need 1 second3 
          if (auto const& value = std::get<0>(step->second); value > 0) {
             ++next_time;
-            workflow.insert({ target, { next_time, value } });
+            workflow.insert({ { target, player - 1 }, { next_time, value } });
          }
+
+
          std::optional<size_t> max_value = Evaluate(max_time, workflow, data);
-         for (auto const& [next, value_next] : std::get<2>(step->second)) {
-            if(auto cntrl = workflow.find(next); cntrl == workflow.end()) {  // player 2, find_if
-               if (value_next && (max_time > next_time + value_next->first) && value_next->second > 0) {
-                  auto val = MakeStep(next, workflow, max_time, next_time + value_next->first, data);
-                  if (val && *val > max_value) {
-                     max_value = val;
+         //for (size_t current = 0; current < players; ++players) {
+            for (auto const& [next, value_next] : std::get<2>(step->second)) {
+               if (auto cntrl = std::find_if(workflow.begin(), workflow.end(), [&next](auto const& val) {
+                         return next == val.first.first;
+                         }) ; cntrl == workflow.end()) {  // player 2, find_if
+                  if (value_next && (max_time > next_time + value_next->first) && value_next->second > 0) {
+                     auto val = MakeStep(next, workflow, player, max_time, next_time + value_next->first, data);
+                     if (val && *val > max_value) {
+                        max_value = val;
+                        }
                      }
                   }
                }
-            }
+         //   }
          return max_value;
          }
       else throw std::runtime_error("Critical error: item with "s + target + " didn't found in data!");
@@ -203,7 +210,7 @@ namespace Day16 {
       //std::cout << "\n\n";
 
       func_start = std::chrono::high_resolution_clock::now();
-      auto value = MakeStep("AA"s, { }, 30, 0, data);
+      auto value = MakeStep("AA"s, { }, 1, 30, 0, data);
       func_ende = std::chrono::high_resolution_clock::now();
       time = std::chrono::duration_cast<std::chrono::milliseconds>(func_ende - func_start);
       if (value) std::cout << "Day 16/1: " << *value << " in " << time.count() / 1000. << " sec\n";

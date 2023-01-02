@@ -1,9 +1,9 @@
-#include "AOC_Day19.h"
+#include "AOC_Day20.h"
 #include "AOC_Read.h"
 
 using namespace std::literals::string_literals;
 
-namespace Day17 {
+namespace Day20 {
 
    void ReadValues_1(std::string const& strFilename) {
       auto ifs = input(strFilename);
