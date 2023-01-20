@@ -106,14 +106,14 @@ int main() {
     std::cout << "\n--- Day 14: Regolith Reservoir ---\n";
     Day14::ReadValues_1(FileNameDay(14));
     Day14::ReadValues_2(FileNameDay(14));
-    
+ 
+    /*
     std::cout << "\n--- Day 15: Beacon Exclusion Zone ---\n";
 
-    /*
     std::cout << "\n--- Day 16: Proboscidea Volcanium ---\n";
     Day16::ReadValues_1(FileNameDay(16));
     Day16::ReadValues_2(FileNameDay(16));
-    */
+    
     std::cout << "\n--- Day 17: Pyroclastic Flow ---\n";
     Day17::ReadValues_1(FileNameDay(17));
     Day17::ReadValues_2(FileNameDay(17));
@@ -149,7 +149,7 @@ int main() {
     std::cout << "\n--- Day 25:  ---\n";
     Day25::ReadValues_1(FileNameDay(25));
     Day25::ReadValues_2(FileNameDay(25));
-
+    */
     //getchar();
    }
    catch(std::exception& ex) {

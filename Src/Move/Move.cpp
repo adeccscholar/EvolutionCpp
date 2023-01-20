@@ -101,10 +101,12 @@ std::tuple<TTracer, TTracer, TTracer> test(int para = 1) {
    return { 1 * para, 2 * para, 3 * para };
    } 
 
+std::tuple<TTracer, TTracer, TTracer> check = test(100);
+
 int main() {
-   TTracer val;
-   val = Funktion(5);
-   std::cout << val << "\n";
+   //TTracer val;
+   //val = Funktion(5);
+   //std::cout << val << "\n";
 
    //TTracer x = 10;  // Dieses Wert die Variable für Bla Bla Bla
    //auto x = Funktion();
