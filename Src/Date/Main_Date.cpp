@@ -1,34 +1,17 @@
+
+#include "Date_TestValues.h"
+#include "Date.h"
+
 #include <iostream>
 #include <iomanip>
 #include <string>
 #include <sstream>
 #include <tuple>
 #include <locale>
+#include <vector>
 #include <array>
 #include <ctime>
 
-using namespace std::literals;
-
-class TDateDiff {
-    friend TDateDiff operator + (TDateDiff const& op1, TDateDiff const& op2);
-    friend TDateDiff operator - (TDateDiff const& op1, TDateDiff const& op2);
-
-    private:
-       int iDays;
-       int iMonths;
-       int iYears;
-    public: 
-       TDateDiff(int days, int months, int years) : iDays(days), iMonths(months), iYears(years) { }
-       TDateDiff(TDateDiff const& ref) : iDays(ref.iDays), iMonths(ref.iMonths), iYears(ref.iYears) { }
-       int Days() const { return iDays; }
-       int Months() const { return iMonths; }
-       int Years() const { return iYears; }
-   };
-
-inline TDateDiff operator""_days(unsigned long long days) { return { static_cast<int>(days), 0, 0 }; }
-inline TDateDiff operator""_months(unsigned long long months) { return { 0, static_cast<int>(months), 0 }; }
-inline TDateDiff operator""_years(unsigned long long years) { return { 0, 0, static_cast<int>(years) }; }
-inline TDateDiff operator""_weeks(unsigned long long weeks) { return { static_cast<int>(weeks) * 7,  0, 0 }; }
 
 TDateDiff operator + (TDateDiff const& op1, TDateDiff const& op2) {
    return { op1.iDays + op2.iDays, op1.iMonths + op2.iMonths, op1.iYears + op2.iYears };
@@ -40,175 +23,6 @@ TDateDiff operator - (TDateDiff const& op1, TDateDiff const& op2) {
 
 
    
-/// Klasse um Datumsfunktionen bereitzustellen und Literale zu zeigen
-class TDate {
-   friend std::ostream& operator << (std::ostream&, TDate const&);
-   friend  std::istream& operator >> (std::istream&, TDate&);
-
-   friend TDate operator + (TDate const& daValue, int iDay);
-   friend TDate operator + (TDate const& daValue, TDateDiff const& datediff);
-   friend TDate operator - (TDate const& daValue, int iDay);
-   friend TDate operator - (TDate const& daValue, TDateDiff const& datediff);
-   friend long  operator - (TDate const& daValue1, TDate const& daValue2);
-
-   private:
-      static inline std::string dateformat = "%d.%m.%Y"s;
-      std::string strLocFormat;
-      std::tuple<int, int, int> data;
-   public:
-      TDate(void) = default;
-      TDate(TDate const& ref) : data(ref.data) { }
-
-      TDate(std::tm const& ref, std::string const& format = dateformat) { 
-         strLocFormat = format;
-         data = std::make_tuple(ref.tm_year + 1900, ref.tm_mon + 1, ref.tm_mday); 
-         }
-
-      TDate(std::time_t const& ref) : TDate(*std::localtime(&ref)) { 
-         }
-
-      TDate(std::string const& ref, std::string const& format = dateformat) {
-         strLocFormat = format;
-         std::istringstream ins(ref);
-         ins >> *this;
-         }
-
-      ~TDate(void) = default;
-
-      TDate& operator = (TDate const& ref) {
-         data = ref.data;
-         return *this;
-         }
-
-      TDate& operator = (std::tm const& ref) {
-         *this = TDate(ref);
-         return *this;
-         }
-
-      TDate& operator = (std::string const& ref) {
-         *this = TDate(ref);
-         return *this;
-         }
-
-
-      // Konversion Operatoren
-      operator std::tm() const { 
-         std::tm ts;
-         ts.tm_year = Year() - 1900;
-         ts.tm_mon  = Month() - 1;
-         ts.tm_mday    = Day();
-
-         ts.tm_hour =  ts.tm_min = ts.tm_sec = 0; 
-         return ts;
-         }
-
-      operator std::string() const {
-         std::ostringstream os;
-         os << *this;
-         return os.str();
-         }
-
-
-      // mathematische Operatoren
-      TDate& operator += (int iDays) { return AddDays(iDays); }
-      TDate& operator += (TDateDiff val) { return AddDiff(val); }
-
-      TDate& operator -= (int iDays) { return AddDays(-iDays); }
-      TDate& operator ++ () { return operator += (1); }
-      TDate& operator -- () { return operator -= (1); };
-
-      TDate operator ++ (int) {  TDate ret(*this); operator += (1); return ret; }
-      TDate operator -- (int ) { TDate ret(*this); operator -= (1); return ret; }
-
-
-      // Selektoren
-      int Year() const { return std::get<0>(data); }
-      int Month() const { return std::get<1>(data); }
-      int Day() const { return std::get<2>(data); }
-      std::string const& Format() const { return strLocFormat; }
-      bool IsLeapYear() const { return IsLeapYear(Year()); }
-
-      /// \name Manipulatoren der Datenklasse
-      /// \{
-      int Year(int newVal)  { return std::get<0>(data) = newVal; }
-      int Month(int newVal) { return std::get<1>(data) = newVal; }
-      int Day(int newVal)   { return std::get<2>(data) = newVal; }
-      std::string const& Format(std::string const& newVal)  { return strLocFormat = newVal; }
-
-      static void SetDefaultFormat(std::string const& format) {  dateformat = format; }
-      /// \}
-
-      TDate& AddDays(int idays);
-      TDate& AddYears(int iYears);   
-      TDate& AddMonths(int iMonths);
-      static long Difference(TDate const& date1, TDate const& date2);
-    //  long Difference360(TDate const& date1, TDate const& date2);
-
-
-      /// \name relationale Operatoren für Instanzen der Klasse
-      /// \{
-      constexpr bool operator == (TDate const& ref) const { return _Compare(ref) == 0; }
-      constexpr bool operator != (TDate const& ref) const { return _Compare(ref) != 0; }
-      constexpr bool operator <  (TDate const& ref) const { return _Compare(ref) <  0; }
-      constexpr bool operator <= (TDate const& ref) const { return _Compare(ref) <= 0; }
-      constexpr bool operator >  (TDate const& ref) const { return _Compare(ref) >  0; }
-      constexpr bool operator >= (TDate const& ref) const { return _Compare(ref) >= 0; }
-      /// \}      
-
-      static TDate Current(void) { 
-         std::time_t t;
-         std::time(&t);
-         TDate ret(t);
-         return ret;
-         }
-
-      static bool IsLeapYear(int iYear) { 
-	      bool boRetVal = false;
-	      if((iYear % 400) == 0)	    boRetVal = true;
-	      else if((iYear % 100) == 0) boRetVal = false;
-		   else if((iYear % 4) == 0)   boRetVal = true;
-         else                        boRetVal = false;
-	      return boRetVal;
-         }
-
-      /// Instanz- Methode, die die Anzahl der Tage im aktuellen Monat zurück gibt
-      int DaysInMonth() const { return DaysInMonth(Year(), Month()); }
-
-
-      /// Klassen- Methode, die die Anzahl der Tage im Monat im Jahr zurückgibt
-      
-      static int DaysInMonth(int iYear, int iMonth) {
-         if(iMonth == 2 && IsLeapYear(iYear)) return 29;
-         return _DaysInMonth()[iMonth];
-         }
-
-   private:
-      TDate& AddDiff(TDateDiff const& diff) {
-         AddYears(diff.Years());
-         AddMonths(diff.Months());
-         AddDays(diff.Days());
-         return *this;
-         }
-
-      int _Compare(TDate const& ref) const {
-         if(data < ref.data) return -1;
-         if(data > ref.data) return  1;
-         return 0;
-         }
-
-      static std::array<int, 13> const& _DaysInMonth(void) {
-         static std::array<int, 13> intern = { 0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
-         return intern;
-         }
-
-      static std::array<int, 13> const& _Days2Month(void) {
-         static std::array<int, 13> intern = { 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365 };
-         return intern;
-         }
-
-
-};
-
 
 std::ostream& operator << (std::ostream& out, TDate const& data) {
     std::ostream::sentry cerberus(out);
@@ -372,7 +186,11 @@ long TDate::Difference(TDate const& date1, TDate const& date2) {
    return lRetVal;
    }
 
+
+
+
 int main(void) {
+/*
     TDate date = "29.02.2020"s;
     TDate date2(date);
     date2.AddMonths(3);
@@ -382,5 +200,42 @@ int main(void) {
     std::cout << "2. Datum " << date2 << "\n";
     std::cout << date2 - date << "\n";
     std::cout << "Kontrolle " << date2 + (date2 - date) << "\n";
-    std::getchar();
+  
+*/
+  TDate::SetDefaultFormat("%m/%d/%Y"s);
+  DateTest::vecTestStreams stream_cases;
+  DateTest::Init(stream_cases);
+  for(auto iVariante : { 1, 5, 7, 8 }) {
+     size_t iErrors, iLines;
+     switch(iVariante) {
+        case 1: std::tie(iLines, iErrors) = DateTest::Test<1>(stream_cases, std::cerr);
+                break;
+        case 2: std::tie(iLines, iErrors) = DateTest::Test<2>(stream_cases, std::cerr);
+                break;
+        case 3: std::tie(iLines, iErrors) = DateTest::Test<3>(stream_cases, std::cerr);
+                break;
+        case 4:
+           std::tie(iLines, iErrors) = DateTest::Test<4>(stream_cases, std::cerr);
+           break;
+        case 5:
+           std::tie(iLines, iErrors) = DateTest::Test<5>(stream_cases, std::cerr);
+           break;
+        case 6:
+           std::tie(iLines, iErrors) = DateTest::Test<6>(stream_cases, std::cerr);
+           break;
+        case 7:
+           std::tie(iLines, iErrors) = DateTest::Test<7>(stream_cases, std::cerr);
+           break;
+        case 8:
+           std::tie(iLines, iErrors) = DateTest::Test<8>(stream_cases, std::cerr);
+           break;
+        case 9:
+           std::tie(iLines, iErrors) = DateTest::Test<9>(stream_cases, std::cerr);
+           break;
+         }
+     std::cout << "Test fuer istream " << iVariante << " mit " << iLines << " durchgefuehrt, " 
+               << iErrors << " Fehler.";
+
+     }
+  std::getchar();
     }

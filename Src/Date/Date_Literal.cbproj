@@ -109,10 +109,17 @@
         <BCC_UseClassicCompiler>false</BCC_UseClassicCompiler>
     </PropertyGroup>
     <ItemGroup>
+        <None Include="Date.h">
+            <BuildOrder>3</BuildOrder>
+        </None>
         <PCHCompile Include="Date_LiteralPCH1.h">
             <BuildOrder>0</BuildOrder>
             <PCH>true</PCH>
         </PCHCompile>
+        <CppCompile Include="Date_TestValues.cpp">
+            <DependentOn>Date_TestValues.h</DependentOn>
+            <BuildOrder>2</BuildOrder>
+        </CppCompile>
         <CppCompile Include="Main_Date.cpp">
             <BuildOrder>1</BuildOrder>
         </CppCompile>
