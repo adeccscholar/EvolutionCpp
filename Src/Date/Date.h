@@ -56,6 +56,12 @@ class TDate {
          strLocFormat = format;
          }
 
+
+      TDate(int ijd, std::string const& format = dateformat) {
+         *this = julian_to_date(ijd);
+         strLocFormat = format;
+         }
+
       TDate(TDate const& ref) : data(ref.data), strLocFormat(ref.strLocFormat) { }
 
       TDate(std::tm const& ref, std::string const& format = dateformat) { 
@@ -107,6 +113,13 @@ class TDate {
          return os.str();
          }
 
+
+      operator int() const {
+         return date_to_julian();
+         }
+
+      TDate& julian_to_date() { *this = julian_to_date(Year()); return *this; }
+      int date_to_julian() const { return date_to_julian(Year(), Month(), Day()); }
 
       // mathematische Operatoren
       TDate& operator += (int iDays) { return AddDays(iDays); }
@@ -161,7 +174,7 @@ class TDate {
          return ret;
          }
 
-      static bool IsLeapYear(int iYear) { 
+      static constexpr bool IsLeapYear(int iYear) { 
 	      bool boRetVal = false;
 	      if((iYear % 400) == 0)	    boRetVal = true;
 	      else if((iYear % 100) == 0) boRetVal = false;
@@ -180,6 +193,39 @@ class TDate {
          if(iMonth == 2 && IsLeapYear(iYear)) return 29;
          return _DaysInMonth()[iMonth];
          }
+
+    // from ChatGPT
+
+    static constexpr int date_to_julian(int year, int month, int day) {
+        int a = (14 - month) / 12;
+        int y = year + 4800 - a;
+        int m = month + 12 * a - 3;
+        return day + (153 * m + 2) / 5 + 365 * y + y / 4 - y / 100 + y / 400 - 32045;
+        }
+
+     static TDate julian_to_date(int jd) {
+        int j = jd + 32044;
+        int g = j / 146097;
+        int dg = j % 146097;
+        int c = (dg / 36524 + 1) * 3 / 4;
+        int dc = dg - c * 36524;
+        int b = dc / 1461;
+        int db = dc % 1461;
+        int a = (db / 365 + 1) * 3 / 4;
+        int da = db - a * 365;
+        int y = g * 400 + c * 100 + b * 4 + a;
+        int m = (da * 5 + 308) / 153 - 2;
+        int d = da - (m + 4) * 153 / 5 + 122;
+        int k = y / 100;
+        int y1 = y + k;
+        int m1 = m - 9;
+        if (m <= 2) {
+           y1--;
+           m1 += 12;
+           }
+        return {d, m1, y1 - 4800 + k};
+        }
+
 
    private:
       TDate& AddDiff(TDateDiff const& diff) {
@@ -204,6 +250,8 @@ class TDate {
          static std::array<int, 13> intern = { 0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334, 365 };
          return intern;
          }
+
+
 
 
    };

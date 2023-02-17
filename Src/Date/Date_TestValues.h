@@ -11,6 +11,7 @@
 #include <tuple>
 #include <vector>
 #include <utility>
+#include <type_traits>
 
 namespace DateTest {
 
@@ -22,14 +23,20 @@ void Init(vecTestStreams& stream_cases);
 
 extern std::vector<std::pair<std::string, std::string>> vecFormat;
 
-template <int iTest = 1>
+template<typename ty>
+struct is_my_date {
+   constexpr static bool value =  std::is_same<TDate, ty>::value;
+   };
+
+template <int iTest = 1, typename ty = TDate>
 std::pair<size_t, size_t> Test(vecTestStreams const& stream_cases, std::ostream& err) {
+   static_assert(is_my_date<ty>::value, "you must use an own Date class for this test.");
    size_t iLines = 0u, iErrors = 0u;
    std::cout << "test for variante = " << iTest << " with format " << vecFormat[iTest].first << "\n";
    for(auto const& testcase : stream_cases) {
-      TDate const& date = std::get<0>(testcase);
+      ty const& date = std::get<0>(testcase);
       std::istringstream ins(std::get<iTest>(testcase));
-      TDate test;
+      ty test;
       test.Format(vecFormat[iTest].second);
       ++iLines;
       ins >> test;

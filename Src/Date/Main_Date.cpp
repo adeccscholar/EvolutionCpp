@@ -187,6 +187,11 @@ long TDate::Difference(TDate const& date1, TDate const& date2) {
    }
 
 
+constexpr int x2(int i) { return i + 2; }
+constexpr int x3(int i) { return i + 2; }
+
+
+int Feld1[x3( x2 (1))];
 
 
 int main(void) {
@@ -202,15 +207,17 @@ int main(void) {
     std::cout << "Kontrolle " << date2 + (date2 - date) << "\n";
   
 */
+  auto x = x3( x2 (1));
+
   TDate::SetDefaultFormat("%m/%d/%Y"s);
   DateTest::vecTestStreams stream_cases;
   DateTest::Init(stream_cases);
   for(auto iVariante : { 1, 5, 7, 8 }) {
      size_t iErrors, iLines;
      switch(iVariante) {
-        case 1: std::tie(iLines, iErrors) = DateTest::Test<1>(stream_cases, std::cerr);
+        case 1: std::tie(iLines, iErrors) = DateTest::Test<1, TDate>(stream_cases, std::cerr);
                 break;
-        case 2: std::tie(iLines, iErrors) = DateTest::Test<2>(stream_cases, std::cerr);
+        case 2: std::tie(iLines, iErrors) = DateTest::Test<2, TDate>(stream_cases, std::cerr);
                 break;
         case 3: std::tie(iLines, iErrors) = DateTest::Test<3>(stream_cases, std::cerr);
                 break;
