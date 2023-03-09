@@ -1,5 +1,6 @@
 #include <iostream>
 #include <vector>
+#include <array>
 #include <list>
 #include <utility>
 #include <algorithm>
@@ -58,6 +59,107 @@ void Sortiere(ty& values) {
    static_assert(is_vector<used_type>::value, "parameter value isn't a vector");
     std::sort(values.begin(), values.end(), sort_lesser<typename used_type::value_type>);
    }
+
+
+
+
+
+
+
+
+
+template <typename ty, int dim>
+class MyArray {
+
+   public:
+    using value_type        = ty;
+    using difference_type   = std::ptrdiff_t;
+    using reference_type    = value_type&;
+    using pointer_type      = value_type*;
+
+
+    struct my_iterator {
+    using iterator_category = std::input_iterator_tag;
+
+
+    my_iterator() {  }
+    my_iterator(value_type p[]) : data(p) {  
+       end_pos = sizeof(p) / sizeof(p[0]);
+       ++*this; 
+       }
+
+      
+    my_iterator& operator = (value_type p[]) {
+       data = p;
+       start_pos = -1;
+       end_pos   = 0;
+       return *this;
+       }
+
+    my_iterator& operator = (my_iterator const& ref) {
+       data      = ref.data;
+       start_pos = ref.start_pos;
+       end_pos   = ref.end_pos;;
+       return *this;
+       }
+
+    reference_type operator*() { return data[start_pos];  }
+    pointer_type operator->() { return &data[start_pos]; }
+
+
+    reference_type operator [](int par) {
+
+    my_iterator& operator++() {
+       if(start_pos + 1 < sizeof(data)/sizeof(data[0])) {
+          ++start_pos;
+          }
+       else {
+          start_pos = -1;
+          }
+       return *this;
+       }
+
+
+    my_iterator operator++(int) {
+       my_iterator copy(*this);
+       ++*this;
+       return copy;
+       }
+     
+    friend bool operator == (my_iterator const& lhs, my_iterator const& rhs) {
+       return lhs.data == rhs.data && lhs.start_pos == lhs.start_pos;
+       }
+
+    friend bool operator != (my_iterator const& lhs, my_iterator const& rhs) {
+       return !(lhs == rhs);
+       }
+
+    private:
+       value_type* data = nullptr;
+       int start_pos    = -1;
+       int end_pos      = 0; 
+    };
+
+
+
+
+
+
+   private:
+      ty _data[dim];  
+   public:
+      my_iterator begin() { return my_iterator(_data); }
+      my_iterator end()  { return my_iterator(); }
+      
+      ty& data() { return _data; }
+      ty const& data() const { return _data; }
+
+};
+
+
+std::array<int, 5>  feld;
+int feld1[5];
+
 
 int main(void)  {
    std::vector<int> values = { 12, 54, 13, 19, 32, 16, 8, 15, 17, 23, 35, 7 };
