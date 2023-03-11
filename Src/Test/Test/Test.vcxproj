@@ -136,6 +136,13 @@
   <ItemGroup>
     <ClCompile Include="Test.cpp" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="MyAddress.h" />
+    <ClInclude Include="MyData.h" />
+    <ClInclude Include="MyFileIterator.h" />
+    <ClInclude Include="MyLocation.h" />
+    <ClInclude Include="Tool_Helper.h" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
