@@ -5,6 +5,7 @@
 
 #include <algorithm>
 #include <charconv>
+#include <vector>
 
 template <typename ty>
 class TData : public TAddress {
@@ -33,9 +34,9 @@ public:
       return *this;
    }
 
-   virtual TAddress* create() { return new TData<ty>; }
-   virtual void init(void) { TAddress::init();  _init(); };
-   virtual void copy(TAddress const& ref) {
+   virtual TAddress* create() override { return new TData<ty>; }
+   virtual void init(void) override { TAddress::init();  _init(); };
+   virtual void copy(TAddress const& ref) override {
       TAddress::copy(ref);
       try {
          _copy(dynamic_cast<TData const&>(ref));

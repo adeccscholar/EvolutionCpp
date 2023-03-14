@@ -43,8 +43,8 @@ struct my_line_iterator {
             start_pos = end_pos + 1;
          }
          else {
-            theText = { };
-            // theText = std::nullopt;
+            //theText = { };
+            theText = std::nullopt;
          }
       }
       return *this;
