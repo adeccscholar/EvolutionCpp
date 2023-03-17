@@ -168,7 +168,7 @@ auto Test3(std::string const& strFilename) {
 
 auto Test4(std::string const& strFilename) {
    auto ifs = OpenFile(strFilename);
-   //ifs.rdbuf()->pubsetbuf(buffer.data(), buffer.size());
+   ifs.rdbuf()->pubsetbuf(buffer.data(), buffer.size());
    ifs.seekg(0, std::ios::end);
    
    auto size = ifs.tellg();
@@ -191,6 +191,7 @@ auto Test4(std::string const& strFilename) {
 
 auto Test5(std::string const& strFilename) {
    auto ins = OpenFile(strFilename, false);
+   ins.rdbuf()->pubsetbuf(buffer.data(), buffer.size());
    ins.seekg(0, std::ios::end);
    auto size = ins.tellg();
    ins.seekg(0, std::ios::beg);
@@ -250,31 +251,44 @@ auto Test6(std::string const& strFilename) {
 }
 
 
-void Test7(std::string const& strFilename, size_t iTasks = 8 ) {
-   std::cout << "7th Test, our iterator, vector reserved, async.\n";
-   std::ifstream ins(strFilename, std::ifstream::binary);
-   if (!ins) {
-      std::cerr << "file with name \"" << strFilename << "\" can't open.\n";
-      return;
+bool tfunc(std::vector<my_line_count>& lines, data_vector<double>& vData, size_t start, size_t end) {
+   for (; start < end; ++start) {
+      int iCount = 0;
+      size_t iPos = 0u, iEnd;
+      do {
+         iEnd = lines[start].view.find(';', iPos);
+         funcs_vw[iCount++](vData[lines[start].index], lines[start].view.substr(iPos, iEnd - iPos));
+         if (iEnd != std::string_view::npos) iPos = iEnd + 1;
+         } 
+      while (iEnd != std::string_view::npos);
+
+      }
+   return true;
    }
-   else {
-      const auto iSize = fs::file_size(strFilename);
-      std::string strBuffer(iSize, '\0');
-      ins.read(strBuffer.data(), iSize);
-      ins.close();
-      std::string_view test(strBuffer.data(), strBuffer.size());
 
-      my_line_count::reset();
-      std::vector<my_line_count> lines;
-      lines.reserve(std::count(test.begin(), test.end(), '\n'));
-      my_lines file_data(test);
-      std::copy(file_data.begin(), file_data.end(), std::back_inserter(lines));
-      data_vector<double> vData;
-      vData.resize(lines.size());
 
-      std::vector<std::future<bool>> tasks(iTasks);
+auto Test7(std::string const& strFilename, size_t iTasks = 8 ) {
+   using namespace std::placeholders;
+   const auto iSize = fs::file_size(strFilename);
+   auto ins = OpenFile(strFilename, false);
+   ins.rdbuf()->pubsetbuf(buffer.data(), buffer.size());
 
-      auto r_func = [&lines, &vData](auto start, auto end) {
+   std::string strBuffer(iSize, '\0');
+   ins.read(strBuffer.data(), iSize);
+   ins.close();
+   std::string_view test(strBuffer.data(), strBuffer.size());
+
+   my_line_count::reset();
+   std::vector<my_line_count> lines;
+   lines.reserve(std::count(test.begin(), test.end(), '\n'));
+   my_lines file_data(test);
+   std::copy(file_data.begin(), file_data.end(), std::back_inserter(lines));
+   data_vector<double> vData;
+   vData.resize(lines.size());
+
+   std::vector<std::future<bool>> tasks(iTasks);
+
+   auto r_func = [&lines, &vData](auto start, auto end) {
          for(;start < end; ++start) {
             int iCount = 0;
             size_t iPos = 0u, iEnd;
@@ -289,41 +303,41 @@ void Test7(std::string const& strFilename, size_t iTasks = 8 ) {
          return true;
          };
 
-      auto func_start = std::chrono::high_resolution_clock::now();
-      
-      for (auto [i, Cnt] = std::make_pair(0u, vData.size()); i < iTasks; ++i)
-         tasks[i] = std::async(r_func, i * Cnt / iTasks, (i + 1) == iTasks ? Cnt : (i + 1) * Cnt / iTasks);
+   auto iCnt = vData.size();
+   auto iElem = iCnt / iTasks;
+   for (int i = 0; i < iTasks; ++i) {   
+      //tasks[i] = std::async(r_func, i * iElem, (i + 1) == iTasks ? iCnt : (i + 1) * iElem);
+      //std::launch::deferred
+      tasks[i] = std::async(std::launch::async, std::bind(tfunc, std::ref(lines), std::ref(vData), _1, _2), 
+                            i * iElem, (i + 1) == iTasks ? iCnt : (i + 1) * iElem);
+      }
 
-      bool boRetVal;
-      for (auto& task : tasks) if (!task.get()) boRetVal = false;
+   bool boRetVal;
+   for (auto& task : tasks) if (!task.get()) boRetVal = false;
 
-      auto func_ende = std::chrono::high_resolution_clock::now();
-      auto time_ = std::chrono::duration_cast<std::chrono::milliseconds>(func_ende - func_start);
-      std::cout << vData.size() << " datasets read\n"
-         << std::setw(12) << std::setprecision(3) << time_.count() / 1000. << " sec\n";
-
-      std::ofstream ofs("D:\\Test\\Testausgabe.txt");
-      Write<double>(vData, ofs);
-   }
+   return vData;
 }
 
 
 void Test(std::string const& strFilename) {
+   using namespace std::placeholders;
    static std::vector<std::tuple<std::string, std::string, std::string, std::function< data_vector<double>(std::string const&)>>> tests = {
       { "Test1"s, "1st Test, Reading sequential with getline, vector dynamic increased."s,    "D:\\Test\\Testausgabe1.txt"s, Test1 },
       { "Test2"s, "2nd Test, Reading with getline, with buffer, vector dynamic increased."s,  "D:\\Test\\Testausgabe2.txt"s, Test2 },
       { "Test3"s, "3rd Test, Reading twice with getline, read buffer, vector prereserved."s,  "D:\\Test\\Testausgabe3.txt"s, Test3 },
       { "Test4"s, "4th Test, Reading twice over stringstream with getline, vector reserved"s, "D:\\Test\\Testausgabe4.txt"s, Test4 },
       { "Test5"s, "5th Test, string operations, vector reserved."s,                           "D:\\Test\\Testausgabe5.txt"s, Test5 },
-      { "Test6"s, "6th Test, our iterator, vector reserved."s,                                "D:\\Test\\Testausgabe6.txt"s, Test6 }
+      { "Test6"s, "6th Test, our iterator, vector reserved."s,                                "D:\\Test\\Testausgabe6.txt"s, Test6 },
+      { "Test7"s, "7th Test, our iterator, vector reserved, async."s,        "D:\\Test\\Testausgabe7.txt"s, std::bind(Test7, _1, 32) }
       };
    try {
 
       for(auto& [test, description, output, func] : tests) {
          std::cout << description << "\n";
          auto func_start = std::chrono::high_resolution_clock::now();
+
          auto vData = func(strFilename);
-         //Test6(strFilename);
+
          auto func_ende = std::chrono::high_resolution_clock::now();
          auto runtime = std::chrono::duration_cast<std::chrono::milliseconds>(func_ende - func_start);
       
@@ -355,11 +369,11 @@ int main() {
 
    
    std::string strInput = "D:\\Test\\berlin_infos.dat"s;
-   Test(strInput);
-   //std::thread t(Test6, std::cref(strInput));
-   //t.join();
+   std::thread t(Test, std::cref(strInput));
+   t.join();
 
    #if defined __BORLANDC__
+   std::cout << "... press a key ...";
    getchar();
    #endif
    return 0;
