@@ -366,8 +366,27 @@ void Rechentest(std::string const& strFilename) {
    std::cout << vData.size() << " datasets read in "
       << std::setprecision(3) << runtime.count() / 1000. << " sec\n";
 
+
    func_start = std::chrono::high_resolution_clock::now();
-   Location<double> point = { 52.5208182, 13.4072251 };
+   std::sort(vData.begin(), vData.end(), [](auto const& lhs, auto const& rhs) { return lhs.first.CompareDIN5007(rhs.first);  });
+   func_ende = std::chrono::high_resolution_clock::now();
+   runtime = std::chrono::duration_cast<std::chrono::milliseconds>(func_ende - func_start);
+   std::cout << vData.size() << " datasets sorted in "
+      << std::setprecision(3) << runtime.count() / 1000. << " sec\n";
+
+   std::string strOutput = "D:\\Test\\Testausgabe_alle.txt"s;
+   func_start = std::chrono::high_resolution_clock::now();
+   std::ofstream ofs(strOutput);
+   Write<double>(vData, ofs);
+   func_ende = std::chrono::high_resolution_clock::now();
+   runtime = std::chrono::duration_cast<std::chrono::milliseconds>(func_ende - func_start);
+   std::cout << vData.size() << " datasets wrote to \"" << strOutput << "\" in "
+      << std::setprecision(3) << runtime.count() / 1000. << " sec\n";
+
+
+   func_start = std::chrono::high_resolution_clock::now();
+   Location<double> point = { 52.520803, 13.40945 };
+   //Location<double> point = { 52.5208182, 13.4072251 };
    /*
    std::for_each(std::execution::par, vData.begin(), vData.end(), [&point](auto& val) mutable {
       val.second = Calculate<double>(point, val.first);
@@ -379,8 +398,7 @@ void Rechentest(std::string const& strFilename) {
    std::cout << vData.size() << " datasets calculated in "
       << std::setprecision(3) << runtime.count() / 1000. << " sec\n";
 
-   std::string strOutput = "D:\\Test\\Testausgabe.txt"s;
-   std::cout << "\n Write file \"" << strOutput << "\"...\n";
+   strOutput = "D:\\Test\\Testausgabe.txt"s;
 
    func_start = std::chrono::high_resolution_clock::now();
    auto it = std::partition(std::execution::par, vData.begin(), vData.end(), [](auto const& val) {
@@ -407,8 +425,8 @@ void Rechentest(std::string const& strFilename) {
 
 
    func_start = std::chrono::high_resolution_clock::now();
-   std::ofstream ofs(strOutput);
-   Write<double>(vData.begin(), it, ofs);
+   std::ofstream ofs2(strOutput);
+   Write<double>(vData.begin(), it, ofs2);
    func_ende = std::chrono::high_resolution_clock::now();
    runtime = std::chrono::duration_cast<std::chrono::milliseconds>(func_ende - func_start);
    std::cout << std::distance(vData.begin(), it) << " datasets wrote to \"" << strOutput << "\" in "

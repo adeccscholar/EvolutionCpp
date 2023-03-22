@@ -96,7 +96,7 @@ inline void Write(typename data_vector<ty>::const_iterator begin, typename data_
    */
    
    std::for_each(begin, end, [&os](auto const& val) {
-      os << val.first.ZipCode() << " " << val.first.City() << " / " << val.first.UrbanUnit() << ", "
+      os << val.first.ZipCode() << " " << val.first.City() << " / " << val.first.UrbanUnit() << ", " //<< val.first.District() << " "
          << val.first.Street() << " " << val.first.StreetNumber() 
          << " -> (" << my_Double_to_String_G(val.first.Latitude(), 6) << ", "
          << my_Double_to_String_G(val.first.Longitude(), 6) << ") -> " 
