@@ -12,18 +12,14 @@
 
 template <typename ty>
 class TData : public TAddress {
-   friend void swap(TData& lhs, TData& rhs) {
-      swap(static_cast<TAddress&>(lhs), static_cast<TAddress&>(rhs));
-      swap(lhs.mLoc, rhs.mLoc);
-   }
-
+   friend void swap(TData& lhs, TData& rhs) noexcept { lhs.swap(rhs); }
 private:
    Location<ty> mLoc;
 public:
    TData(void) : TAddress() { _init(); }
    TData(TData const& ref) : TAddress(ref) { _copy(ref); }
 
-   TData(TData&& ref) noexcept : TAddress(ref) { _swap(std::forward<TData<ty>>(ref)); }
+   TData(TData&& ref) noexcept : TAddress(ref) { swap(ref); }
 
    virtual ~TData(void) override { }
 
@@ -33,9 +29,15 @@ public:
    }
 
    TData& operator = (TData&& ref) noexcept {
-      _swap(std::forward<TData>(ref));
+      swap(ref);
       return *this;
    }
+
+   void swap(TData& ref) {
+      TAddress::swap(static_cast<TAddress&>(ref));
+      using std::swap;
+      swap(mLoc, ref.mLoc);
+      }
 
    virtual TAddress* create() override { return new TData<ty>; }
    virtual void init(void) override { TAddress::init();  _init(); };
@@ -69,7 +71,6 @@ public:
 private:
    void _init(void) { mLoc = { 0.0, 0.0 }; }
    void _copy(TData const& ref) { mLoc = ref.mLoc; }
-   void _swap(TData&& ref) noexcept { swap(mLoc, ref.mLoc); }
 };
 
 template <typename ty>

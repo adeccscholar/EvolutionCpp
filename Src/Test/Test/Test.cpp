@@ -20,6 +20,7 @@
 #include <string>
 #include <string_view> // !! C++17
 #include <vector>
+#include <map>
 #include <array>
 #include <fstream>
 #include <functional>
@@ -123,6 +124,7 @@ inline size_t Read_2(data_vector<ty>& vData, func_vector_vw const& funcs, std::s
 }
 
 
+
 auto OpenFile(std::string const& strFilename, bool boText = true) {
    std::ifstream ifs(strFilename, (boText ? std::ifstream::in : std::ifstream::in | std::ifstream::binary));
    if (!ifs.is_open()) {
@@ -209,7 +211,7 @@ auto Test5(std::string const& strFilename) {
    return vData;
    }
 
-auto Test6(std::string const& strFilename) {
+inline auto Test6(std::string const& strFilename) {
    const auto iSize = fs::file_size(strFilename);
    auto ins = OpenFile(strFilename, false);
    ins.rdbuf()->pubsetbuf(buffer.data(), buffer.size());
@@ -355,19 +357,123 @@ void Test(std::string const& strFilename) {
    }
 
 
+inline void Sorting(data_vector<double>& vData) {
+
+   static const std::string special_chars = "äöüßÄÖÜáèéçñ"s;
+   static const std::map<char, std::string> special_values = { {'ä',"ae"s}, {'Ä',"Ae"s },{'ü',"ue"s},{'Ü',"Ue"s},{'ß',"ss"s},
+                                                               {'ö',"oe"s}, {'Ö',"Oe"s },{'á',"a"s },{'è',"e"s },{'é',"e"s },{'ç',"c"s },{'ñ',"n"s } };
+
+   static constexpr auto normalize = [](std::string const& param, size_t pos) noexcept {
+      std::string text = param;
+      do {
+         text.replace(pos, 1, special_values.find(text[pos])->second);
+         } 
+      while ((pos = text.find_first_of(special_chars, pos)) != std::string::npos);
+      return text;
+   };
+
+   static constexpr auto compare = [](std::string const& left, std::string const& right) noexcept {
+      if(auto ret = left <=> right; ret == 0) return ret;
+      else {
+         auto cleft_pos = left.find_first_of(special_chars);
+         auto cright_pos = right.find_first_of(special_chars);
+         auto cleft = cleft_pos != std::string::npos;
+         auto cright = cright_pos != std::string::npos;
+
+         if (!cleft && cright)       return left <=> normalize(right, cright_pos);
+         else if (cleft && !cright)  return normalize(left, cleft_pos) <=> right;
+         else if (cleft && cright)   return normalize(left, cleft_pos) <=> normalize(right, cright_pos);
+         else return ret;
+         }
+   };
+
+   static constexpr auto lower = [](std::string&& strVal) {
+      std::transform(std::execution::par, strVal.begin(), strVal.end(), strVal.begin(), [](char val) { return std::tolower(val); });
+      return strVal;
+   };
+
+   /*
+   static constexpr auto compare_streetnumber2 = [](std::string const& aSNr, std::string const& bSNr) noexcept {
+      std::string::size_type szA, szB;
+      int iAN = stoi(aSNr, &szA), iBN = stoi(bSNr, &szB);
+      if (auto cmp = iAN <=> iBN; cmp != 0) return cmp < 0;
+      return lower(aSNr.substr(szA)) < lower(bSNr.substr(szB)) ? true : false;
+      //return aSNr.substr(szA) < bSNr.substr(szB) ? true : false;
+   };
+   */
+   ///*
+   static constexpr auto compare_streetnumber2 = [](std::string const& aSNr, std::string const& bSNr) noexcept {
+      int a_Nr, b_Nr;
+      auto [a_ptr, a_ec] { std::from_chars(aSNr.data(), aSNr.data() + aSNr.size(), a_Nr) };
+      auto [b_ptr, b_ec] { std::from_chars(bSNr.data(), bSNr.data() + bSNr.size(), b_Nr) };
+      if (auto cmp = a_Nr <=> b_Nr; cmp != 0) return cmp < 0;
+      else {
+         return lower(a_ptr) < lower(b_ptr);
+         }
+      };
+   //*/
+   std::sort(std::execution::par, vData.begin(), vData.end(), [](auto const& lhs, auto const& rhs) {
+   //std::sort(vData.begin(), vData.end(), [](auto const& lhs, auto const& rhs) {
+      auto const& a = lhs.first;
+      auto const& b = rhs.first;
+      if (auto cmp = compare(a.City(), b.City()); cmp != 0) return cmp < 0;
+      if (auto cmp = compare(a.UrbanUnit(), b.UrbanUnit()); cmp != 0) return cmp < 0;
+      if (auto cmp = compare(a.District(), b.District()); cmp != 0) return cmp < 0;
+      if (auto cmp = a.ZipCode() <=> b.ZipCode(); cmp != 0) return cmp < 0;
+      if (auto cmp = compare(a.Street(), b.Street()); cmp != 0) return cmp < 0;
+      return compare_streetnumber2(a.StreetNumber(), b.StreetNumber());
+      });
+
+
+   }
+
+/*
+384860 datasets read in 1.015935 sec
+384860 datasets sorted in 7.244717 sec
+384860 datasets calculated in 0.041658 sec
+384860 datasets wrote to "D:\Test\Testausgabe_alle.txt" in 1.717351 sec
+1653 datasets partition in 0.002418 sec
+1653 datasets sorted in 0.000411 sec
+1653 datasets wrote to "D:\Test\Testausgabe.txt" in 0.007347 sec
+
+384860 datasets read in 0.171594 sec
+384860 datasets sorted in 0.550478 sec
+384860 datasets calculated in 0.038222 sec
+384860 datasets wrote to "D:\Test\Testausgabe_alle.txt" in 0.828755 sec
+384860 datasets partition in 0.001669 sec
+1653 datasets sorted in 0.000353 sec
+1653 datasets wrote to "D:\Test\Testausgabe.txt" in 0.004153 sec
+
+Finished.
+*/
 
 void Rechentest(std::string const& strFilename) {
+   using myTime_Duration = std::chrono::microseconds;
+   static const double time_factor = 1000000.;
+   static const int    time_precision = 6;
+   //using myTime_Duration = std::chrono::milliseconds;
+   //static const double time_factor    = 1000.;
+   //static const int    time_precision = 3;
+
    auto func_start = std::chrono::high_resolution_clock::now();
 
    auto vData = Test6(strFilename);
 
    auto func_ende = std::chrono::high_resolution_clock::now();
-   auto runtime = std::chrono::duration_cast<std::chrono::milliseconds>(func_ende - func_start);
+   auto runtime = std::chrono::duration_cast<myTime_Duration>(func_ende - func_start);
    std::cout << vData.size() << " datasets read in "
-      << std::setprecision(3) << runtime.count() / 1000. << " sec\n";
+      << std::setprecision(time_precision) << runtime.count() / time_factor << " sec\n";
 
    func_start = std::chrono::high_resolution_clock::now();
-   Location<double> point = { 52.5208182, 13.4072251 };
+   Sorting(vData);
+   func_ende = std::chrono::high_resolution_clock::now();
+   runtime = std::chrono::duration_cast<myTime_Duration>(func_ende - func_start);
+   std::cout << vData.size() << " datasets sorted in "
+      << std::setprecision(time_precision) << runtime.count() / time_factor << " sec\n";
+
+   func_start = std::chrono::high_resolution_clock::now();
+   Location<double> point = { 52.520803, 13.40945 };
+   //Location<double> point = { 52.5208182, 13.4072251 };
    /*
    std::for_each(std::execution::par, vData.begin(), vData.end(), [&point](auto& val) mutable {
       val.second = Calculate<double>(point, val.first);
@@ -375,11 +481,23 @@ void Rechentest(std::string const& strFilename) {
    */
    Calculate(point, vData.begin(), vData.end());
    func_ende = std::chrono::high_resolution_clock::now();
-   runtime = std::chrono::duration_cast<std::chrono::milliseconds>(func_ende - func_start);
+   runtime = std::chrono::duration_cast<myTime_Duration>(func_ende - func_start);
    std::cout << vData.size() << " datasets calculated in "
-      << std::setprecision(3) << runtime.count() / 1000. << " sec\n";
+      << std::setprecision(time_precision) << runtime.count() / time_factor << " sec\n";
 
-   std::string strOutput = "D:\\Test\\Testausgabe.txt"s;
+   std::string strOutput = "D:\\Test\\Testausgabe_alle.txt"s;
+   std::ostringstream os;
+   func_start = std::chrono::high_resolution_clock::now();
+   std::ofstream ofs(strOutput);
+   Write<double>(vData, os);
+   ofs.write(os.str().data(), os.str().size());
+   func_ende = std::chrono::high_resolution_clock::now();
+   runtime = std::chrono::duration_cast<myTime_Duration>(func_ende - func_start);
+   std::cout << vData.size() << " datasets wrote to \"" << strOutput << "\" in "
+      << std::setprecision(time_precision) << runtime.count() / time_factor << " sec\n";
+
+
+   strOutput = "D:\\Test\\Testausgabe.txt"s;
    std::cout << "\n Write file \"" << strOutput << "\"...\n";
 
    func_start = std::chrono::high_resolution_clock::now();
@@ -387,32 +505,33 @@ void Rechentest(std::string const& strFilename) {
       return val.second.first < 1000.0;
       });
    func_ende = std::chrono::high_resolution_clock::now();
-   runtime = std::chrono::duration_cast<std::chrono::milliseconds>(func_ende - func_start);
+   runtime = std::chrono::duration_cast<myTime_Duration>(func_ende - func_start);
    std::cout << vData.size() << " datasets partition in "
-      << std::setprecision(3) << runtime.count() / 1000. << " sec\n";
+      << std::setprecision(time_precision) << runtime.count() / time_factor << " sec\n";
 
    func_start = std::chrono::high_resolution_clock::now();
    std::sort(std::execution::par, vData.begin(), it, [](auto const& lhs, auto const& rhs) {
       if (auto cmp = lhs.second.first <=> rhs.second.first; cmp != 0) return cmp > 0;
-      else if (auto cmp = lhs.second.second <=> rhs.second.second; cmp != 0) return cmp < 0;
-           else return false;
+      else return lhs.second.second < rhs.second.second;
       });
    func_ende = std::chrono::high_resolution_clock::now();
-   runtime = std::chrono::duration_cast<std::chrono::milliseconds>(func_ende - func_start);
+   runtime = std::chrono::duration_cast<myTime_Duration>(func_ende - func_start);
    std::cout << std::distance(vData.begin(), it) << " datasets sorted in "
-      << std::setprecision(3) << runtime.count() / 1000. << " sec\n";
+      << std::setprecision(time_precision) << runtime.count() / time_factor << " sec\n";
 
 
 
 
-
+   ofs.close();
+   std::ostringstream os2;
    func_start = std::chrono::high_resolution_clock::now();
-   std::ofstream ofs(strOutput);
-   Write<double>(vData.begin(), it, ofs);
+   ofs.open(strOutput);
+   Write<double>(vData.begin(), it, os2);
+   ofs.write(os2.str().data(), os2.str().size());
    func_ende = std::chrono::high_resolution_clock::now();
-   runtime = std::chrono::duration_cast<std::chrono::milliseconds>(func_ende - func_start);
+   runtime = std::chrono::duration_cast<myTime_Duration>(func_ende - func_start);
    std::cout << std::distance(vData.begin(), it) << " datasets wrote to \"" << strOutput << "\" in "
-             << std::setprecision(3) << runtime.count() / 1000. << " sec\n";
+             << std::setprecision(time_precision) << runtime.count() / time_factor << " sec\n";
    std::cout << "\nFinished.\n";
 
 

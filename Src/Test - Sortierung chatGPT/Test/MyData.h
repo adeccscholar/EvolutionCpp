@@ -12,18 +12,14 @@
 
 template <typename ty>
 class TData : public TAddress {
-   friend void swap(TData& lhs, TData& rhs) {
-      swap(static_cast<TAddress&>(lhs), static_cast<TAddress&>(rhs));
-      swap(lhs.mLoc, rhs.mLoc);
-   }
-
+   friend void swap(TData& lhs, TData& rhs) noexcept { lhs.swap(rhs);  }
 private:
    Location<ty> mLoc;
 public:
    TData(void) : TAddress() { _init(); }
    TData(TData const& ref) : TAddress(ref) { _copy(ref); }
 
-   TData(TData&& ref) noexcept : TAddress(ref) { _swap(std::forward<TData<ty>>(ref)); }
+   TData(TData&& ref) noexcept : TAddress(ref) { swap(ref); }
 
    virtual ~TData(void) override { }
 
@@ -32,10 +28,18 @@ public:
       return *this;
    }
 
+   
    TData& operator = (TData&& ref) noexcept {
-      _swap(std::forward<TData>(ref));
+      swap(ref);
       return *this;
-   }
+      }
+   
+
+   void swap(TData& ref) {
+      TAddress::swap(static_cast<TAddress&>(ref));
+      using std::swap;
+      swap(mLoc, ref.mLoc);
+      }
 
    virtual TAddress* create() override { return new TData<ty>; }
    virtual void init(void) override { TAddress::init();  _init(); };
@@ -69,7 +73,6 @@ public:
 private:
    void _init(void) { mLoc = { 0.0, 0.0 }; }
    void _copy(TData const& ref) { mLoc = ref.mLoc; }
-   void _swap(TData&& ref) noexcept { swap(mLoc, ref.mLoc); }
 };
 
 template <typename ty>
@@ -84,13 +87,13 @@ template <typename ty>
 inline void Write(typename data_vector<ty>::const_iterator begin, typename data_vector<ty>::const_iterator end, std::ostream& os) {
    //os.setf(std::ios::showpoint);
    //os.setf(std::ios::fixed);
-   //os.precision(6);
+   //os.precision(9);
    /*
    std::for_each(vData.cbegin(), vData.cend(), [&os](auto const& val) {
       os << val.first.ZipCode() << " " << val.first.City() << " / " << val.first.UrbanUnit() << ", "
          << val.first.Street() << " " << val.first.StreetNumber() 
-         << " -> (" << std::setprecision(6) << val.first.Latitude() << ", "
-         << std::setprecision(6) << val.first.Longitude() << ") -> " 
+         << " -> (" << std::setprecision(9) << val.first.Latitude() << ", "
+         << std::setprecision(9) << val.first.Longitude() << ") -> " 
          << std::setprecision(3) << val.second.first << "m in "
          << std::setprecision(1) << val.second.second << "°\n";
    */
@@ -98,8 +101,8 @@ inline void Write(typename data_vector<ty>::const_iterator begin, typename data_
    std::for_each(begin, end, [&os](auto const& val) {
       os << val.first.ZipCode() << " " << val.first.City() << " / " << val.first.UrbanUnit() << ", " //<< val.first.District() << " "
          << val.first.Street() << " " << val.first.StreetNumber() 
-         << " -> (" << my_Double_to_String_G(val.first.Latitude(), 6) << ", "
-         << my_Double_to_String_G(val.first.Longitude(), 6) << ") -> " 
+         << " -> (" << my_Double_to_String_G(val.first.Latitude(), 9) << ", "
+         << my_Double_to_String_G(val.first.Longitude(), 9) << ") -> " 
          << my_Double_to_String_G(val.second.first, 3) << "m in " 
          << my_Double_to_String_G(val.second.second, 1) << "°\n";
    
@@ -123,9 +126,8 @@ inline void Calculate(Location<ty> const& pointA, typename data_vector<ty>::iter
    static const double w1 = M_PI / 180.0;
    static const double w2 = 180.0 / M_PI;
 #else
-   static constexpr double pi = 3.14159265358979323846;
-   static const double w1 = pi / 180.0;
-   static const double w2 = 180.0 / pi;
+   static const double w1 = std::numbers::pi_v<double> / 180.0;
+   static const double w2 = 180.0 / std::numbers::pi_v<double>;
 #endif
    double phiA = pointA.first * w1; /// 180.0 * M_PI;
    double lambdaA = pointA.second * w1; /// 180.0 * M_PI;

@@ -51,43 +51,12 @@ struct Location : public std::pair<ty, ty> {
       return *this;
       }
 
+   ty Latitude() const { return this->first;  }
+   ty Longitude() const { return this->second; }
 };
 
 
 template <typename ty, std::enable_if_t<std::is_floating_point<ty>::value, bool> = true>
 using Result = std::pair<ty, ty>;
-
-
-
-
-
-template< typename ty>
-inline Result<ty> Calculate(Location<ty> const& pointA, Location<ty> const& pointB) {
-   static constexpr auto my_round = [](double const& val) {
-      return std::round(val * 1000.0) / 1000.0;
-   };
-
-   static const double r = 6371000.785;                     //< mean radius of the earth
-#if defined __BORLANDC__
-   static const double w1 = M_PI / 180.0;
-   static const double w2 = 180.0 / M_PI;
-#else
- //  static constexpr double pi = 3.14159265358979323846;
-   static constexpr double pi = std::numbers::pi_v<double>;
-   static const double w1 = pi / 180.0;
-   static const double w2 = 180.0 / pi;
-#endif
-   double phiA = pointA.first * w1; /// 180.0 * M_PI;
-   double lambdaA = pointA.second * w1; /// 180.0 * M_PI;
-   double phiB = pointB.first * w1; /// 180.0 * M_PI;
-   double lambdaB = pointB.second * w1; /// 180.0 * M_PI;
-   double zeta = std::acos(std::sin(phiA) * std::sin(phiB) + std::cos(phiA) * std::cos(phiB) * std::cos(lambdaB - lambdaA));
-   double alpha = std::acos((std::sin(phiB) - std::sin(phiA) * std::cos(zeta)) / (std::cos(phiA) * std::sin(zeta)));
-   if (std::isnan(alpha)) {
-      alpha = (std::sin(phiB) - std::sin(phiA) * std::cos(zeta)) / (std::cos(phiA) * std::sin(zeta)) < -1.0 ? 180.0 : 0.0;
-   }
-   else alpha = my_round(alpha * w2);
-   return std::make_pair(my_round(zeta * r), lambdaA > lambdaB ? phiA > 0 ? 360.0 - alpha : 180.0 + alpha : phiA > 0 ? alpha : 180.0 - alpha);
-}
 
 

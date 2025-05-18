@@ -8,15 +8,7 @@
  * @brief Address or cadastral data
 */
 class TAddress {
-   friend void swap(TAddress& lhs, TAddress& rhs) {
-      swap(lhs.strCity, rhs.strCity);
-      swap(lhs.strStreet, rhs.strStreet);
-      swap(lhs.strStreetNumber, rhs.strStreetNumber);
-      swap(lhs.strZipCode, rhs.strZipCode);
-      swap(lhs.strUrbanUnit, rhs.strUrbanUnit);
-      swap(lhs.strUrbanUnit_Old, rhs.strUrbanUnit_Old);
-      swap(lhs.strDistrict, rhs.strDistrict);
-   }
+   friend void swap(TAddress& lhs, TAddress& rhs) noexcept { lhs.swap(rhs); }
 private:
    std::string strCity = "";  ///< Stadt, an der sich die Adresse befindet
    std::string strStreet = "";  ///< Straße zu dieser Adresse
@@ -36,7 +28,7 @@ public:
    }
 
    TAddress(TAddress&& ref) noexcept {
-      _swap(std::forward<TAddress>(ref));
+      swap(ref);
    }
 
 
@@ -50,10 +42,20 @@ public:
    }
 
    TAddress& operator = (TAddress&& ref) noexcept {
-      swap(*this, ref);
+      swap(ref);
       return *this;
    }
 
+   void swap(TAddress& ref) noexcept {
+      using std::swap;
+      swap(strCity,          ref.strCity);
+      swap(strStreet,        ref.strStreet);
+      swap(strStreetNumber,  ref.strStreetNumber);
+      swap(strZipCode,       ref.strZipCode);
+      swap(strUrbanUnit,     ref.strUrbanUnit);
+      swap(strUrbanUnit_Old, ref.strUrbanUnit_Old);
+      swap(strDistrict,      ref.strDistrict);
+      }
 
    virtual void init() { _init(); }
    virtual void copy(TAddress const& ref) { _copy(ref); }
@@ -116,13 +118,4 @@ private:
       District(ref.District());
    }
 
-   void _swap(TAddress&& ref) noexcept {
-      swap(strCity, ref.strCity);
-      swap(strStreet, ref.strStreet);
-      swap(strStreetNumber, ref.strStreetNumber);
-      swap(strZipCode, ref.strZipCode);
-      swap(strUrbanUnit, ref.strUrbanUnit);
-      swap(strUrbanUnit_Old, ref.strUrbanUnit_Old);
-      swap(strDistrict, ref.strDistrict);
-   }
 };

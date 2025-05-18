@@ -6,6 +6,19 @@
 
 using namespace std::literals;
 
+
+void TAddress::swap(TAddress& ref) noexcept {
+   using std::swap;
+   swap(strCity, ref.strCity);
+   swap(strStreet, ref.strStreet);
+   swap(strStreetNumber, ref.strStreetNumber);
+   swap(strZipCode, ref.strZipCode);
+   swap(strUrbanUnit, ref.strUrbanUnit);
+   swap(strUrbanUnit_Old, ref.strUrbanUnit_Old);
+   swap(strDistrict, ref.strDistrict);
+}
+
+
 void TAddress::_init(void) {
    strCity = ""s;
    strStreet = ""s;
@@ -25,15 +38,6 @@ void TAddress::_copy(TAddress const& ref) {
    District(ref.District());
 }
 
-void TAddress::_swap(TAddress&& ref) noexcept {
-   swap(strCity, ref.strCity);
-   swap(strStreet, ref.strStreet);
-   swap(strStreetNumber, ref.strStreetNumber);
-   swap(strZipCode, ref.strZipCode);
-   swap(strUrbanUnit, ref.strUrbanUnit);
-   swap(strUrbanUnit_Old, ref.strUrbanUnit_Old);
-   swap(strDistrict, ref.strDistrict);
-}
 
 
 // Compare the Addresses with DIN 5007-2 Norm, Streetnumber with numeric part and addition

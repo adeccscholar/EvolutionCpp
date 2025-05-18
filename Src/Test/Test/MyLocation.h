@@ -32,8 +32,9 @@ struct Location : public std::pair<ty, ty> {
       return out;
       }
 
-   friend void swap(Location& lhs, Location&rhs) {
-      swap(static_cast<std::pair<ty, ty>&>(lhs), static_cast<std::pair<ty, ty>&>(rhs));
+   friend void swap(Location& lhs, Location&rhs) noexcept {
+      //swap(static_cast<std::pair<ty, ty>&>(lhs), static_cast<std::pair<ty, ty>&>(rhs));
+      lhs.swap(rhs);
       }
 
    Location(ty const& a, ty const& b) {
@@ -43,12 +44,16 @@ struct Location : public std::pair<ty, ty> {
 
    Location(void) : Location(0.0, 0.0) { }
    Location(Location const&) = default;
-   Location(Location&& ref) = default;
+   Location(Location&& ref) noexcept { swap(ref); };
 
    Location& operator = (Location const& ref) {
       this->first = ref.first;
       this->second = ref.second;
       return *this;
+      }
+
+   void swap(Location& rhs) noexcept {
+      std::pair<ty, ty>::swap(rhs);
       }
 
 };

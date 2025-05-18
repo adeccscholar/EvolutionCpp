@@ -8,15 +8,7 @@
  * @brief Address or cadastral data
 */
 class TAddress {
-   friend void swap(TAddress& lhs, TAddress& rhs) {
-      swap(lhs.strCity, rhs.strCity);
-      swap(lhs.strStreet, rhs.strStreet);
-      swap(lhs.strStreetNumber, rhs.strStreetNumber);
-      swap(lhs.strZipCode, rhs.strZipCode);
-      swap(lhs.strUrbanUnit, rhs.strUrbanUnit);
-      swap(lhs.strUrbanUnit_Old, rhs.strUrbanUnit_Old);
-      swap(lhs.strDistrict, rhs.strDistrict);
-   }
+   friend void swap(TAddress& lhs, TAddress& rhs) noexcept { lhs.swap(rhs); }
 private:
    std::string strCity = "";  ///< Stadt, an der sich die Adresse befindet
    std::string strStreet = "";  ///< Straße zu dieser Adresse
@@ -35,10 +27,11 @@ public:
       _copy(ref);
    }
 
+   
    TAddress(TAddress&& ref) noexcept {
-      _swap(std::forward<TAddress>(ref));
+      swap(ref);
    }
-
+   
 
    virtual ~TAddress(void) = default;
 
@@ -47,13 +40,16 @@ public:
    TAddress& operator = (TAddress const& ref) {
       copy(ref);
       return *this;
-   }
+      }
 
+   
    TAddress& operator = (TAddress&& ref) noexcept {
-      swap(*this, ref);
+      swap(ref);
       return *this;
-   }
+      }
+   
 
+   void swap(TAddress& ref) noexcept;
 
    virtual void init() { _init(); }
    virtual void copy(TAddress const& ref) { _copy(ref); }
@@ -101,8 +97,7 @@ public:
 private:
    void _init(void);
    void _copy(TAddress const& ref);
-   void _swap(TAddress&& ref) noexcept;
-
+ 
 
    static std::string normalizeDIN(std::string const& strText);
    static void Parse_StreetNumber(std::string const& strInput, int& streetnumber, std::string& addition);

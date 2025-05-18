@@ -31,429 +31,309 @@
 #include <thread>
 #include <future>
 
+
 using namespace std::literals;
 namespace fs = std::filesystem;
 
-const func_vector funcs = {
-   [](TData<double>& data, std::string const& val) { data.City(val); } ,
-   //nullptr,
-   [](TData<double>& data, std::string const& val) { data.Street(val); } ,
-   [](TData<double>& data, std::string const& val) { data.StreetNumber(val); },
-   [](TData<double>& data, std::string const& val) { data.ZipCode(val); },
-   [](TData<double>& data, std::string const& val) { data.UrbanUnit(val); },
-   [](TData<double>& data, std::string const& val) { data.UrbanUnit_Old(val); },
-   [](TData<double>& data, std::string const& val) { data.District(val); },
-   [](TData<double>& data, std::string const& val) { data.Latitude(val); },
-   [](TData<double>& data, std::string const& val) { data.Longitude(val); },
-   [](TData<double>&, std::string const&) { throw std::runtime_error("unexpected number of elements.");  } 
-};
-
-const func_vector_vw funcs_vw = {
-   [](TData<double>& data, std::string_view const& val) { data.City(val); } ,
-   [](TData<double>& data, std::string_view const& val) { data.Street(val); } ,
-   [](TData<double>& data, std::string_view const& val) { data.StreetNumber(val); },
-   [](TData<double>& data, std::string_view const& val) { data.ZipCode(val); },
-   [](TData<double>& data, std::string_view const& val) { data.UrbanUnit(val); },
-   [](TData<double>& data, std::string_view const& val) { data.UrbanUnit_Old(val); },
-   [](TData<double>& data, std::string_view const& val) { data.District(val); },
-   [](TData<double>& data, std::string_view const& val) { data.Latitude(val); },
-   [](TData<double>& data, std::string_view const& val) { data.Longitude(val); },
-   [](TData<double>&, std::string_view const&) { throw std::runtime_error("unexpected number of elements.");  }
-};
+#define PI 3.14159265358979323846
+#define R 6371000 // Erdradius in Metern
 
 
-template <typename ty>
-inline size_t Read_0(data_vector<ty>& vData, func_vector const& funcs, std::istream& ifs) {
-   size_t iLineCnt = 0u;
-   std::string strRow;
-   while(std::getline(ifs, strRow)) {
-      if(strRow.length() > 2) {
-         TData<double> data;
-         auto input = tokenize(strRow, ";", 9);
-         if(input.size() == 9) {
-            #if defined __BORLANDC__
-               size_t iCnt = 0u; 
-               for (auto const& element : input) { funcs[iCnt](data, input[iCnt]); ++iCnt; }
-            #else
-               for (size_t iCnt = 0u; auto const& element : input) { funcs[iCnt](data, input[iCnt]); ++iCnt; }
-            #endif
-            vData.emplace_back(std::make_pair(std::forward<TData<double>>(data), Result<ty>()));
-            ++iLineCnt;
-            }
+// Funktion zur Konvertierung von Grad in Radian
+double deg2rad(double deg) {
+   return (deg * PI / 180);
+}
+double rad2deg(double rad) {
+   return (rad * 180 / PI);
+}
+
+// Funktion zur Berechnung des Abstands zwischen zwei Positionen in Metern
+double distance_1(Location<double> pos1, Location<double> pos2) {
+   double dlon = deg2rad(pos2.Longitude() - pos1.Longitude());
+   double dlat = deg2rad(pos2.Latitude() - pos1.Latitude());
+
+   double a = pow(sin(dlat / 2), 2) + cos(deg2rad(pos1.Latitude())) * cos(deg2rad(pos2.Latitude())) * pow(sin(dlon / 2), 2);
+   double c = 2 * atan2(sqrt(a), sqrt(1 - a));
+   double distance = R * c;
+   return distance;
+   }
+
+double distance(Location<double> pos1, Location<double> pos2) {
+   double r = 6371e3; // Erdradius in Metern
+   double lat1 = pos1.Latitude() * PI / 180.0; // Umwandlung in Radiant
+   double lat2 = pos2.Latitude() * PI / 180.0;
+   double dLat = (pos2.Latitude() - pos1.Latitude()) * PI / 180.0;
+   double dLon = (pos2.Longitude() - pos1.Longitude()) * PI / 180.0;
+
+   double a = sin(dLat / 2) * sin(dLat / 2) + cos(lat1) * cos(lat2) * sin(dLon / 2) * sin(dLon / 2);
+   double c = 2 * atan2(sqrt(a), sqrt(1 - a));
+   double d = r * c;
+   return d;
+   }
+
+// Funktion zur Berechnung des Kurswinkels von Position 1 zu Position 2
+double bearing_1(Location<double> pos1, Location<double> pos2) {
+   double dlon = deg2rad(pos2.Longitude() - pos1.Longitude());
+   double lat1 = deg2rad(pos1.Latitude());
+   double lat2 = deg2rad(pos2.Latitude());
+
+   double y = sin(dlon) * cos(lat2);
+   double x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dlon);
+   double bearing = atan2(y, x);
+   return rad2deg(bearing);
+   }
+
+double bearing(Location<double> pos1, Location<double> pos2) {
+   double lat1 = pos1.Latitude() * PI / 180.0; // Umwandlung in Radiant
+   double lat2 = pos2.Latitude() * PI / 180.0;
+   double dLon = (pos2.Longitude() - pos1.Longitude()) * PI / 180.0;
+
+   double y = sin(dLon) * cos(lat2);
+   double x = cos(lat1) * sin(lat2) - sin(lat1) * cos(lat2) * cos(dLon);
+
+   double bearing = atan2(y, x) * 180.0 / PI;
+
+   // Korrektur des Winkels auf den Bereich von 0 bis 360 Grad
+   bearing = fmod(bearing + 360.0, 360.0);
+
+   return bearing;
+}
+
+
+int pushMatchingToFront(data_vector<double>& addresses, double matchValue) {
+   int i = 0, j = addresses.size() - 1;
+   while (i < j) {
+      if (addresses[i].second.first < matchValue) {
+         i++;
+      }
+      else if (addresses[j].second.first >= matchValue) {
+         j--;
+      }
+      else {
+         swap(addresses[i], addresses[j]);
+      }
+   }
+   return i; // (v[i] == matchValue) ? i + 1 : i;
+}
+
+void sortAddressesInRange(data_vector<double>& addresses, int endIndex) {
+   sort(addresses.begin(), addresses.begin() + endIndex, [](const auto& a1, const auto& a2) {
+      if (a1.second.first != a2.second.first) {
+         return a1.second.first > a2.second.first; // Sortiere absteigend nach Entfernung
+      }
+      else {
+         return a1.second.second < a2.second.second; // Sortiere aufsteigend nach Kurswinkel
+         }
+      });
+   }
+
+auto BerechneChatGPT(data_vector<double>& addresses, Location<double> point) {
+   for (auto& [address, result] : addresses) {
+      double dist = distance( point, { address.Latitude(), address.Longitude() });
+      result.first = dist;
+      double angle = bearing( { address.Latitude(), address.Longitude() }, point);
+      result.second = fmod(360.0 - angle, 360.0); // Kurswinkel als Komplement des Azimuts
+   }
+}
+
+auto TestchatGPT(data_vector<double>& addresses, std::string const& strFilename) {
+   addresses.clear();
+   std::ifstream infile(strFilename);  // Datei öffnen
+   if (!infile) {
+      std::cerr << "Die Datei konnte nicht geöffnet werden." << std::endl;
+      return 1;
+   }
+   std::string line;
+   while (getline(infile, line)) {  // Zeilenweise Daten einlesen
+      TData<double> address;
+
+      // Daten aus der Zeile auslesen
+      size_t pos = 0;
+      std::string token;
+      int field_count = 0;
+      while ((pos = line.find(';')) != std::string::npos) {
+         token = line.substr(0, pos);
+         line.erase(0, pos + 1);
+
+         switch (field_count) {  // Daten in die Datenstruktur schreiben
+         case 0:
+            address.City(token);
+            break;
+         case 1:
+            address.Street(token);
+            break;
+         case 2:
+            address.StreetNumber(token);
+            break;
+         case 3:
+            address.ZipCode(token);
+            break;
+         case 4:
+            address.UrbanUnit(token);
+            break;
+         case 5:
+            address.UrbanUnit_Old(token);
+            break;
+         case 6:
+            address.District(token);
+            break;
+         case 7:
+            address.Latitude(stod(token));
+            break;
+         case 8:
+            address.Longitude(stod(token));
+            break;
+         default:
+            break;
+         }
+         field_count++;
+      }
+
+      // Letztes Feld auslesen und in die Datenstruktur schreiben
+      if (!line.empty()) {
+         switch (field_count) {
+         case 0:
+            address.City(line);
+            break;
+         case 1:
+            address.Street(line);
+            break;
+         case 2:
+            address.StreetNumber(line);
+            break;
+         case 3:
+            address.ZipCode(line);
+            break;
+         case 4:
+            address.UrbanUnit(line);
+            break;
+         case 5:
+            address.UrbanUnit_Old(line);
+            break;
+         case 6:
+            address.District(line);
+            break;
+         case 7:
+            address.Latitude(stod(line));
+            break;
+         case 8:
+            address.Longitude(stod(line));
+            break;
+         default:
+            break;
          }
       }
-   return iLineCnt;
+
+      addresses.push_back({ address, { 0., 0.} });  // Datenstruktur dem Vektor hinzufügen
    }
 
-template <typename ty>
-inline size_t Read_1(data_vector<ty>& vData, func_vector const& funs, std::string const& buffer) {
-   size_t pos = 0u;
-   for(auto end = buffer.find('\n'); end != std::string::npos; pos = end + 1u, end = buffer.find('\n', pos )) {
-      size_t iCnt = 0u;
-      TData<ty> data;
-      do {
-         auto tmp = buffer.find(';', pos);
-         if (tmp > end) tmp = end;
-         funcs[iCnt++](data, buffer.substr(pos, tmp - pos));
-         pos = tmp + 1;
-         } 
-      while (pos < end);
-         vData.emplace_back(std::make_pair(std::forward<TData<double>>(data), Result<ty>()));
-   }
-   return vData.size();
-}
-
-template <typename ty>
-inline size_t Read_2(data_vector<ty>& vData, func_vector_vw const& funcs, std::string const& buffer) {
-   std::string_view view(buffer.c_str(), buffer.size());
-   using my_size_t = typename data_vector<ty>::size_type;
-   using my_pair = std::pair< my_size_t, my_size_t>;
-   for (auto [pos, end] = my_pair { 0u, view.find('\n') }; end != std::string_view::npos; pos = end + 1u, end = view.find('\n', pos)) {
-      size_t iCnt = 0u;
-      TData<ty> data;
-      do {
-         auto tmp = view.find(';', pos);
-         if (tmp > end) tmp = end;
-         funcs[iCnt++](data, view.substr(pos, tmp - pos));
-         pos = tmp + 1;
-      } while (pos < end);
-      vData.emplace_back(std::make_pair(std::forward<TData<double>>(data), Result<ty>()));
-   }
-   return vData.size();
+   infile.close();  // Datei schließen
+   return 0;
 }
 
 
-auto OpenFile(std::string const& strFilename, bool boText = true) {
-   std::ifstream ifs(strFilename, (boText ? std::ifstream::in : std::ifstream::in | std::ifstream::binary));
-   if (!ifs.is_open()) {
-      std::ostringstream os;
-      os << "File \"" << strFilename << "\" can't open!\n";
-      throw std::runtime_error(os.str());
+auto WriteChatGPT(data_vector<double> const& addresses, std::string const& strFilename, int count = -1) {
+   // Datei für die Ausgabe öffnen
+   std::ofstream outfile(strFilename);
+   if (!outfile) {
+      std::cerr << "Die Datei konnte nicht geöffnet werden." << std::endl;
+      return 1;
       }
-   return ifs;
-   }
+   //outfile.imbue(std::locale("de_DE"));
 
-auto Test1(std::string const& strFilename) {
-   auto ifs = OpenFile(strFilename);
-   data_vector<double> vecData;
-   Read_0<double>(vecData, funcs, ifs);
-   return vecData;
-   }
-
-
-
-// 36.533.626 36.536.320   (8.920)
-std::array<char, 4'096 * 8'920> buffer;
-
-auto Test2(std::string const& strFilename) {
-   auto ifs = OpenFile(strFilename);
-   data_vector<double> vecData;
-   ifs.rdbuf()->pubsetbuf(buffer.data(), buffer.size());
-   Read_0<double>(vecData, funcs, ifs);
-   return vecData;
-}
-
-auto Test3(std::string const& strFilename) {
-   auto ifs = OpenFile(strFilename);
-   ifs.rdbuf()->pubsetbuf(buffer.data(), buffer.size());
-   data_vector<double> vecData;
-   vecData.reserve(std::count(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>(), '\n'));
-   ifs.seekg(0, std::ios::beg);
-
-   Read_0<double>(vecData, funcs, ifs);
-   return vecData;
-   }
-
-
-
-auto Test4(std::string const& strFilename) {
-   auto ifs = OpenFile(strFilename);
-   ifs.rdbuf()->pubsetbuf(buffer.data(), buffer.size());
-   ifs.seekg(0, std::ios::end);
-   
-   auto size = ifs.tellg();
-   ifs.seekg(0, std::ios::beg);
-   std::string strBuffer(size, '\0');
-   ifs.read(strBuffer.data(), size);
-   ifs.close();
-   
-   data_vector<double> vData;
-   #if defined __BORLANDC__
-      vData.reserve(std::count(strBuffer.begin(), strBuffer.end(), '\n'));
-   #else
-      vData.reserve(std::count(std::execution::par, strBuffer.begin(), strBuffer.end(), '\n'));
-   #endif
-   std::istringstream iss(std::forward<std::string>(strBuffer));
-
-   Read_0<double>(vData, funcs, iss);
-   return vData;
-   }
-
-auto Test5(std::string const& strFilename) {
-   auto ins = OpenFile(strFilename, false);
-   ins.rdbuf()->pubsetbuf(buffer.data(), buffer.size());
-   ins.seekg(0, std::ios::end);
-   auto size = ins.tellg();
-   ins.seekg(0, std::ios::beg);
-   std::string strBuffer(size, '\0');
-   ins.read(strBuffer.data(), size);
-   ins.close();
-   data_vector<double> vData;
-
-   #if defined __BORLANDC__
-      vData.reserve(std::count(strBuffer.begin(), strBuffer.end(), '\n'));
-   #else
-      vData.reserve(std::count(std::execution::par, strBuffer.begin(), strBuffer.end(), '\n'));
-   #endif
-   Read_1<double>(vData, funcs, strBuffer);
-   return vData;
-   }
-
-auto Test6(std::string const& strFilename) {
-   const auto iSize = fs::file_size(strFilename);
-   auto ins = OpenFile(strFilename, false);
-   ins.rdbuf()->pubsetbuf(buffer.data(), buffer.size());
-   
-   std::string strBuffer;
-   strBuffer.resize(iSize);
-   ins.read(strBuffer.data(), iSize);
-   ins.close();
-   std::string_view test(strBuffer.data(), strBuffer.size());
-   
-   my_line_count::reset();
-   std::vector<my_line_count> lines;
-   #if defined __BORLANDC__
-   size_t size = std::count(test.begin(), test.end(), '\n');
-   #else
-   size_t size = std::count(std::execution::par, test.begin(), test.end(), '\n');
-   #endif
-   lines.reserve(size);
-   my_lines file_data(test);
-   std::copy(file_data.begin(), file_data.end(), std::back_inserter(lines));
-   data_vector<double> vData;
-   vData.resize(lines.size());
-   #if defined __BORLANDC__
-   std::for_each( 
-   #else
-   std::for_each(std::execution::par, 
-   #endif
-                              lines.begin(), lines.end(), [&vData](auto const& val) {
-                                                  size_t iPos = 0u, iEnd;
-                                                  int iCount = 0;  // funcs_vw
-                                                  do {
-                                                     iEnd = val.view.find(';', iPos);
-                                                     funcs_vw[iCount++](vData[val.index].first, val.view.substr(iPos, iEnd - iPos));
-                                                     if (iEnd != std::string_view::npos) iPos = iEnd + 1;
-                                                     } 
-                                                  while (iEnd != std::string_view::npos);
-                                                  } );
-     return vData;
-}
-
-
-bool tfunc(std::vector<my_line_count>& lines, data_vector<double>& vData, size_t start, size_t end) {
-   for (; start < end; ++start) {
-      int iCount = 0;
-      size_t iPos = 0u, iEnd;
-      do {
-         iEnd = lines[start].view.find(';', iPos);
-         funcs_vw[iCount++](vData[lines[start].index].first, lines[start].view.substr(iPos, iEnd - iPos));
-         if (iEnd != std::string_view::npos) iPos = iEnd + 1;
-         } 
-      while (iEnd != std::string_view::npos);
-
+   // Adressen in die Ausgabedatei schreiben
+   std::locale german(std::locale("de_DE"));
+   int i = 0;
+   for (const auto& [address, distance] : addresses) {
+      // Zeile im gewünschten Format zusammenstellen
+      if (count > 0 && !(i < count)) break;
+      std::ostringstream line_stream;
+      line_stream.imbue(german);
+      line_stream << address.ZipCode() << " " << address.City() << " / " << address.UrbanUnit() << ", " 
+                  << address.Street() << " " << address.StreetNumber() 
+                  << " -> (" << std::fixed << std::setprecision(9) << address.Latitude()
+                  << ", " << std::fixed << std::setprecision(9) << address.Longitude() << ")"
+                  << " -> " << std::fixed << std::setprecision(3) << distance.first << "m"
+                  << " in " << std::fixed << std::setprecision(1) << distance.second << "°\n";
+      std::string line = line_stream.str();
+      // Zeile in die Datei schreiben
+      outfile << line;
+      i++;
       }
-   return true;
-   }
-
-
-auto Test7(std::string const& strFilename, size_t iTasks = 8 ) {
-   using namespace std::placeholders;
-   const auto iSize = fs::file_size(strFilename);
-   auto ins = OpenFile(strFilename, false);
-   ins.rdbuf()->pubsetbuf(buffer.data(), buffer.size());
-
-   std::string strBuffer(iSize, '\0');
-   ins.read(strBuffer.data(), iSize);
-   ins.close();
-   std::string_view test(strBuffer.data(), strBuffer.size());
-
-   my_line_count::reset();
-   std::vector<my_line_count> lines;
-   lines.reserve(std::count(test.begin(), test.end(), '\n'));
-   my_lines file_data(test);
-   std::copy(file_data.begin(), file_data.end(), std::back_inserter(lines));
-   data_vector<double> vData;
-   vData.resize(lines.size());
-
-   std::vector<std::future<bool>> tasks(iTasks);
-
-   auto r_func = [&lines, &vData](auto start, auto end) {
-         for(;start < end; ++start) {
-            int iCount = 0;
-            size_t iPos = 0u, iEnd;
-            do {
-               iEnd = lines[start].view.find(';', iPos);
-               funcs_vw[iCount++](vData[lines[start].index], lines[start].view.substr(iPos, iEnd - iPos));
-               if (iEnd != std::string_view::npos) iPos = iEnd + 1;
-               } 
-            while (iEnd != std::string_view::npos);
-
-            }
-         return true;
-         };
-
-   auto iCnt = vData.size();
-   auto iElem = iCnt / iTasks;
-   for (int i = 0; i < iTasks; ++i) {   
-      //tasks[i] = std::async(r_func, i * iElem, (i + 1) == iTasks ? iCnt : (i + 1) * iElem);
-      //std::launch::deferred
-      tasks[i] = std::async(std::launch::async, std::bind(tfunc, std::ref(lines), std::ref(vData), _1, _2), 
-                            i * iElem, (i + 1) == iTasks ? iCnt : (i + 1) * iElem);
-      }
-
-   bool boRetVal;
-   for (auto& task : tasks) if (!task.get()) boRetVal = false;
-
-   return vData;
-}
-
-
-void Test(std::string const& strFilename) {
-   using namespace std::placeholders;
-   static std::vector<std::tuple<std::string, std::string, std::string, std::function< data_vector<double>(std::string const&)>>> tests = {
-      { "Test1"s, "1st Test, Reading sequential with getline, vector dynamic increased."s,    "D:\\Test\\Testausgabe1.txt"s, Test1 },
-      { "Test2"s, "2nd Test, Reading with getline, with buffer, vector dynamic increased."s,  "D:\\Test\\Testausgabe2.txt"s, Test2 },
-      { "Test3"s, "3rd Test, Reading twice with getline, read buffer, vector prereserved."s,  "D:\\Test\\Testausgabe3.txt"s, Test3 },
-      { "Test4"s, "4th Test, Reading twice over stringstream with getline, vector reserved"s, "D:\\Test\\Testausgabe4.txt"s, Test4 },
-      { "Test5"s, "5th Test, string operations, vector reserved."s,                           "D:\\Test\\Testausgabe5.txt"s, Test5 },
-      { "Test6"s, "6th Test, our iterator, vector reserved."s,                                "D:\\Test\\Testausgabe6.txt"s, Test6 },
-      { "Test7"s, "7th Test, our iterator, vector reserved, async."s,        "D:\\Test\\Testausgabe7.txt"s, std::bind(Test7, _1, 16) }
-      };
-   try {
-
-      for(auto& [test, description, output, func] : tests) {
-         std::cout << description << "\n";
-         auto func_start = std::chrono::high_resolution_clock::now();
-
-         auto vData = func(strFilename);
-
-         auto func_ende = std::chrono::high_resolution_clock::now();
-         auto runtime = std::chrono::duration_cast<std::chrono::milliseconds>(func_ende - func_start);
-      
-         std::cout << vData.size() << " datasets read in "
-                   << std::setw(12) << std::setprecision(3) << runtime.count() / 1000. << " sec\n";
-
-         std::ofstream ofs(output);
-         Write<double>(vData, ofs);
-         std::cout << "...\n\n";
-         }
-      }
-   catch(std::exception& ex) {
-      std::cerr << ex.what() << std::endl;
-      }
+   outfile.close();  // Datei schließen
+   return 0;
    }
 
 
 
 void Rechentest(std::string const& strFilename) {
+   using myTimeType = std::chrono::microseconds; // std::chrono::milliseconds
+   static const double time_factor = 1000000.;
+   static const int    time_prec = 6;
    auto func_start = std::chrono::high_resolution_clock::now();
-
-   auto vData = Test6(strFilename);
-
+   data_vector<double> vData;
+   TestchatGPT(vData, strFilename);
+   
    auto func_ende = std::chrono::high_resolution_clock::now();
-   auto runtime = std::chrono::duration_cast<std::chrono::milliseconds>(func_ende - func_start);
+   auto runtime = std::chrono::duration_cast<myTimeType>(func_ende - func_start);
    std::cout << vData.size() << " datasets read in "
-      << std::setprecision(3) << runtime.count() / 1000. << " sec\n";
+      << std::setprecision(time_prec) << runtime.count() / time_factor << " sec\n";
 
 
    func_start = std::chrono::high_resolution_clock::now();
    std::sort(vData.begin(), vData.end(), [](auto const& lhs, auto const& rhs) { return lhs.first.CompareDIN5007(rhs.first);  });
    func_ende = std::chrono::high_resolution_clock::now();
-   runtime = std::chrono::duration_cast<std::chrono::milliseconds>(func_ende - func_start);
+   runtime = std::chrono::duration_cast<myTimeType>(func_ende - func_start);
    std::cout << vData.size() << " datasets sorted in "
-      << std::setprecision(3) << runtime.count() / 1000. << " sec\n";
-
-   std::string strOutput = "D:\\Test\\Testausgabe_alle.txt"s;
-   func_start = std::chrono::high_resolution_clock::now();
-   std::ofstream ofs(strOutput);
-   Write<double>(vData, ofs);
-   func_ende = std::chrono::high_resolution_clock::now();
-   runtime = std::chrono::duration_cast<std::chrono::milliseconds>(func_ende - func_start);
-   std::cout << vData.size() << " datasets wrote to \"" << strOutput << "\" in "
-      << std::setprecision(3) << runtime.count() / 1000. << " sec\n";
-
+      << std::setprecision(time_prec) << runtime.count() / time_factor << " sec\n";
 
    func_start = std::chrono::high_resolution_clock::now();
    Location<double> point = { 52.520803, 13.40945 };
-   //Location<double> point = { 52.5208182, 13.4072251 };
-   /*
-   std::for_each(std::execution::par, vData.begin(), vData.end(), [&point](auto& val) mutable {
-      val.second = Calculate<double>(point, val.first);
-      });
-   */
-   Calculate(point, vData.begin(), vData.end());
+   BerechneChatGPT(vData, point);
    func_ende = std::chrono::high_resolution_clock::now();
-   runtime = std::chrono::duration_cast<std::chrono::milliseconds>(func_ende - func_start);
+   runtime = std::chrono::duration_cast<myTimeType>(func_ende - func_start);
    std::cout << vData.size() << " datasets calculated in "
-      << std::setprecision(3) << runtime.count() / 1000. << " sec\n";
+      << std::setprecision(time_prec) << runtime.count() / time_factor << " sec\n";
+
+   std::string strOutput = "D:\\Test\\Testausgabe_alle.txt"s;
+   func_start = std::chrono::high_resolution_clock::now();
+   WriteChatGPT(vData, strOutput);
+   func_ende = std::chrono::high_resolution_clock::now();
+   runtime = std::chrono::duration_cast<myTimeType>(func_ende - func_start);
+   std::cout << vData.size() << " datasets wrote to \"" << strOutput << "\" in "
+      << std::setprecision(time_prec) << runtime.count() / time_factor << " sec\n";
 
    strOutput = "D:\\Test\\Testausgabe.txt"s;
 
    func_start = std::chrono::high_resolution_clock::now();
-   auto it = std::partition(std::execution::par, vData.begin(), vData.end(), [](auto const& val) {
-      return val.second.first < 1000.0;
-      });
+   auto val = pushMatchingToFront(vData, 1000.0);
    func_ende = std::chrono::high_resolution_clock::now();
-   runtime = std::chrono::duration_cast<std::chrono::milliseconds>(func_ende - func_start);
-   std::cout << vData.size() << " datasets partition in "
-      << std::setprecision(3) << runtime.count() / 1000. << " sec\n";
+   runtime = std::chrono::duration_cast<myTimeType>(func_ende - func_start);
+   std::cout << val << " datasets partition in "
+      << std::setprecision(time_prec) << runtime.count() / time_factor << " sec\n";
 
    func_start = std::chrono::high_resolution_clock::now();
-   std::sort(std::execution::par, vData.begin(), it, [](auto const& lhs, auto const& rhs) {
-      if (auto cmp = lhs.second.first <=> rhs.second.first; cmp != 0) return cmp > 0;
-      else if (auto cmp = lhs.second.second <=> rhs.second.second; cmp != 0) return cmp < 0;
-           else return false;
-      });
+   sortAddressesInRange(vData, val);
    func_ende = std::chrono::high_resolution_clock::now();
-   runtime = std::chrono::duration_cast<std::chrono::milliseconds>(func_ende - func_start);
-   std::cout << std::distance(vData.begin(), it) << " datasets sorted in "
-      << std::setprecision(3) << runtime.count() / 1000. << " sec\n";
-
-
-
-
+   runtime = std::chrono::duration_cast<myTimeType>(func_ende - func_start);
+   std::cout << val << " datasets sorted in "
+      << std::setprecision(time_prec) << runtime.count() / time_factor << " sec\n";
 
    func_start = std::chrono::high_resolution_clock::now();
-   std::ofstream ofs2(strOutput);
-   Write<double>(vData.begin(), it, ofs2);
+   WriteChatGPT(vData, strOutput, val);
    func_ende = std::chrono::high_resolution_clock::now();
-   runtime = std::chrono::duration_cast<std::chrono::milliseconds>(func_ende - func_start);
-   std::cout << std::distance(vData.begin(), it) << " datasets wrote to \"" << strOutput << "\" in "
-             << std::setprecision(3) << runtime.count() / 1000. << " sec\n";
+   runtime = std::chrono::duration_cast<myTimeType>(func_ende - func_start);
+   std::cout << val << " datasets wrote to \"" << strOutput << "\" in "
+      << std::setprecision(time_prec) << runtime.count() / time_factor << " sec\n";
+
    std::cout << "\nFinished.\n";
-
-
-
-
 }
 
 int main() {
-   std::ios_base::sync_with_stdio(false);
    std::cout.setf(std::ios::showpoint);
    std::cout.setf(std::ios::fixed);
 
-   //TData<double> data;
-   //Location<double> point  = { 2.0, 1.0 };
-   //Calculate<double>(data, point);
- 
-   //Location<double> point = { 2.0, 1.0 };
-   //Location<int> point1 = { 2, 1 };
-
-   
    std::string strInput = "D:\\Test\\berlin_infos.dat"s;
-   //std::thread t(Test, std::cref(strInput));
-   //t.join();
    Rechentest(strInput);
    #if defined __BORLANDC__
    std::cout << "... press a key ...";
